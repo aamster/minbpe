@@ -6,10 +6,10 @@ This algorithm was popularized for LLMs by the [GPT-2 paper](https://d4mucfpksyw
 
 There are two Tokenizers in this repository, both of which can perform the 3 primary functions of a Tokenizer: 1) train the tokenizer vocabulary and merges on a given text, 2) encode from text to tokens, 3) decode from tokens to text. The files of the repo are as follows:
 
-1. [minbpe/base.py](minbpe/base.py): Implements the `Tokenizer` class, which is the base class. It contains the `train`, `encode`, and `decode` stubs, save/load functionality, and there are also a few common utility functions. This class is not meant to be used directly, but rather to be inherited from.
-2. [minbpe/basic.py](minbpe/basic.py): Implements the `BasicTokenizer`, the simplest implementation of the BPE algorithm that runs directly on text.
-3. [minbpe/regex.py](minbpe/regex.py): Implements the `RegexTokenizer` that further splits the input text by a regex pattern, which is a preprocessing stage that splits up the input text by categories (think: letters, numbers, punctuation) before tokenization. This ensures that no merges will happen across category boundaries. This was introduced in the GPT-2 paper and continues to be in use as of GPT-4. This class also handles special tokens, if any.
-4. [minbpe/gpt4.py](minbpe/gpt4.py): Implements the `GPT4Tokenizer`. This class is a light wrapper around the `RegexTokenizer` (2, above) that exactly reproduces the tokenization of GPT-4 in the [tiktoken](https://github.com/openai/tiktoken) library. The wrapping handles some details around recovering the exact merges in the tokenizer, and the handling of some unfortunate (and likely historical?) 1-byte token permutations.
+1. [minbpe/base.py](src/minbpe/base.py): Implements the `Tokenizer` class, which is the base class. It contains the `train`, `encode`, and `decode` stubs, save/load functionality, and there are also a few common utility functions. This class is not meant to be used directly, but rather to be inherited from.
+2. [minbpe/basic.py](src/minbpe/basic.py): Implements the `BasicTokenizer`, the simplest implementation of the BPE algorithm that runs directly on text.
+3. [minbpe/regex.py](src/minbpe/regex.py): Implements the `RegexTokenizer` that further splits the input text by a regex pattern, which is a preprocessing stage that splits up the input text by categories (think: letters, numbers, punctuation) before tokenization. This ensures that no merges will happen across category boundaries. This was introduced in the GPT-2 paper and continues to be in use as of GPT-4. This class also handles special tokens, if any.
+4. [minbpe/gpt4.py](src/minbpe/gpt4.py): Implements the `GPT4Tokenizer`. This class is a light wrapper around the `RegexTokenizer` (2, above) that exactly reproduces the tokenization of GPT-4 in the [tiktoken](https://github.com/openai/tiktoken) library. The wrapping handles some details around recovering the exact merges in the tokenizer, and the handling of some unfortunate (and likely historical?) 1-byte token permutations.
 
 Finally, the script [train.py](train.py) trains the two major tokenizers on the input text [tests/taylorswift.txt](tests/taylorswift.txt) (this is the Wikipedia entry for her kek) and saves the vocab to disk for visualization. This script runs in about 25 seconds on my (M1) MacBook.
 
@@ -20,10 +20,11 @@ All of the files above are very short and thoroughly commented, and also contain
 As the simplest example, we can reproduce the [Wikipedia article on BPE](https://en.wikipedia.org/wiki/Byte_pair_encoding) as follows:
 
 ```python
-from minbpe import BasicTokenizer
+from src.minbpe import BasicTokenizer
+
 tokenizer = BasicTokenizer()
 text = "aaabdaaabac"
-tokenizer.train(text, 256 + 3) # 256 are the byte tokens, then do 3 merges
+tokenizer.train(text, 256 + 3)  # 256 are the byte tokens, then do 3 merges
 print(tokenizer.encode(text))
 # [258, 100, 258, 97, 99]
 print(tokenizer.decode([258, 100, 258, 97, 99]))
@@ -43,12 +44,14 @@ text = "hello123!!!? (안녕하세요!) 😉"
 
 # tiktoken
 import tiktoken
+
 enc = tiktoken.get_encoding("cl100k_base")
 print(enc.encode(text))
 # [15339, 4513, 12340, 30, 320, 31495, 230, 75265, 243, 92245, 16715, 57037]
 
 # ours
-from minbpe import GPT4Tokenizer
+from src.minbpe import GPT4Tokenizer
+
 tokenizer = GPT4Tokenizer()
 print(tokenizer.encode(text))
 # [15339, 4513, 12340, 30, 320, 31495, 230, 75265, 243, 92245, 16715, 57037]
@@ -61,12 +64,14 @@ text = "<|endoftext|>hello world"
 
 # tiktoken
 import tiktoken
+
 enc = tiktoken.get_encoding("cl100k_base")
 print(enc.encode(text, allowed_special="all"))
 # [100257, 15339, 1917]
 
 # ours
-from minbpe import GPT4Tokenizer
+from src.minbpe import GPT4Tokenizer
+
 tokenizer = GPT4Tokenizer()
 print(tokenizer.encode(text, allowed_special="all"))
 # [100257, 15339, 1917]
@@ -81,25 +86,27 @@ Unlike tiktoken, this code allows you to train your own tokenizer. In principle 
 There are two paths you can follow. First, you can decide that you don't want the complexity of splitting and preprocessing text with regex patterns, and you also don't care for special tokens. In that case, reach for the `BasicTokenizer`. You can train it, and then encode and decode for example as follows:
 
 ```python
-from minbpe import BasicTokenizer
+from src.minbpe import BasicTokenizer
+
 tokenizer = BasicTokenizer()
 tokenizer.train(very_long_training_string, vocab_size=4096)
-tokenizer.encode("hello world") # string -> tokens
-tokenizer.decode([1000, 2000, 3000]) # tokens -> string
-tokenizer.save("mymodel") # writes mymodel.model and mymodel.vocab
-tokenizer.load("mymodel.model") # loads the model back, the vocab is just for vis
+tokenizer.encode("hello world")  # string -> tokens
+tokenizer.decode([1000, 2000, 3000])  # tokens -> string
+tokenizer.save("mymodel")  # writes mymodel.model and mymodel.vocab
+tokenizer.load("mymodel.model")  # loads the model back, the vocab is just for vis
 ```
 
 If you instead want to follow along with OpenAI did for their text tokenizer, it's a good idea to adopt their approach of using regex pattern to split the text by categories. The GPT-4 pattern is a default with the `RegexTokenizer`, so you'd simple do something like:
 
 ```python
-from minbpe import RegexTokenizer
+from src.minbpe import RegexTokenizer
+
 tokenizer = RegexTokenizer()
 tokenizer.train(very_long_training_string, vocab_size=32768)
-tokenizer.encode("hello world") # string -> tokens
-tokenizer.decode([1000, 2000, 3000]) # tokens -> string
-tokenizer.save("tok32k") # writes tok32k.model and tok32k.vocab
-tokenizer.load("tok32k.model") # loads the model back from disk
+tokenizer.encode("hello world")  # string -> tokens
+tokenizer.decode([1000, 2000, 3000])  # tokens -> string
+tokenizer.save("tok32k")  # writes tok32k.model and tok32k.vocab
+tokenizer.load("tok32k.model")  # loads the model back from disk
 ```
 
 Where, of course, you'd want to change around the vocabulary size depending on the size of your dataset.
@@ -107,7 +114,8 @@ Where, of course, you'd want to change around the vocabulary size depending on t
 **Special tokens**. Finally, you might wish to add special tokens to your tokenizer. Register these using the `register_special_tokens` function. For example if you train with vocab_size of 32768, then the first 256 tokens are raw byte tokens, the next 32768-256 are merge tokens, and after those you can add the special tokens. The last "real" merge token will have id of 32767 (vocab_size - 1), so your first special token should come right after that, with an id of exactly 32768. So:
 
 ```python
-from minbpe import RegexTokenizer
+from src.minbpe import RegexTokenizer
+
 tokenizer = RegexTokenizer()
 tokenizer.train(very_long_training_string, vocab_size=32768)
 tokenizer.register_special_tokens({"<|endoftext|>": 32768})

@@ -5,7 +5,7 @@ loads the pretrained tokenizer from the `cl100k_base` tokenizer of tiktoken.
 """
 
 import tiktoken
-from .regex import RegexTokenizer
+from minbpe.regex import RegexTokenizer
 
 
 def bpe(mergeable_ranks, token, max_rank):

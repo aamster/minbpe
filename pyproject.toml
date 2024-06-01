@@ -1,0 +1,35 @@
+# -----------------------------------------------------------------------------
+##  Build System Configurations
+#   https://setuptools.pypa.io/en/latest/setuptools.html#building-and-distributing-packages-with-setuptools
+# -----------------------------------------------------------------------------
+
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "minbpe"
+description = "Minimal, clean code for the Byte Pair Encoding (BPE) algorithm commonly used in LLM tokenization."
+readme = "README.md"
+dynamic = [ "version"]
+requires-python = ">=3.9"
+
+dependencies = [
+    "regex",
+    "tiktoken"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest"
+]
+
+[tool.setuptools.dynamic]
+version = {attr = "minbpe.__version__.__version__"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"*" = ['py.typed']

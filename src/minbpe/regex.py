@@ -10,7 +10,7 @@ Unlike BasicTokenizer:
 """
 
 import regex as re
-from .base import Tokenizer, get_stats, merge
+from minbpe.base import Tokenizer, get_stats, merge
 
 
 # the main GPT text split patterns, see
